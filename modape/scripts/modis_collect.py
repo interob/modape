@@ -42,7 +42,7 @@ def run_process(pdict):
             traceback.print_exc()
         print('\n')
 
-def main():
+def modis_collect():
     """Collect raw MODIS hdf files into a raw MODIS HDF5 file.
 
     All MODIS hdf files within srcdir will be collected into a raw MODIS HDF5 file, corresponding to product type and tile.
@@ -51,23 +51,10 @@ def main():
 
     16-day MOD13* and MYD13* products can be interleaved into an 8-day product with the new product ID MXD* by adding the `--interleave` flag.
     """
-
-    parser = argparse.ArgumentParser(description='Process downloaded RAW MODIS hdf files')
-    parser.add_argument('srcdir', help='directory with raw MODIS .hdf files', default=os.getcwd(), metavar='srcdir')
-    parser.add_argument('-d', '--targetdir', help='Target directory for PROCESSED MODIS files (default is scrdir)', metavar='')
-    parser.add_argument('-x', '--compression', help='Compression for HDF5 files', default='gzip', metavar='')
-    parser.add_argument('-c', '--chunksize', help='Number of pixels per block (value needs to result in integer number of blocks)', type=int, metavar='')
-    parser.add_argument('--all-vampc', help='Flag to process all possible VAM product codes', action='store_true')
-    parser.add_argument('--interleave', help='Interleave MOD13 & MYD13 products to MXD (only works for VIM!)', action='store_true')
-    parser.add_argument('--parallel-tiles', help='Number of tiles processed in parallel (default = None)', default=1, type=int, metavar='')
-    parser.add_argument('--quiet', help='Be quiet', action='store_true')
-
-    # Fail and print help if no arguments supplied
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(0)
-
-    args = parser.parse_args()
+    args = {'srcdir': os.getcwd(), 'targetdir': None, 'compression': 'gzip', 'chunksize': None, 'all_vampc': False,
+            'interleave': False, 'parallel_tiles': 1, 'quiet': False, 'cleanup_ingested': False}
+    args.update(kwargs)
+    args = argparse.Namespace(**args)
 
     input_dir = Path(args.srcdir)
 
@@ -141,5 +128,32 @@ def main():
         if not args.quiet:
             print('\n[{}]: Done.'.format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())))
 
+    print('\n')
+    for file in files:
+        open(file + '.ingested', 'w').close()
+        if args.cleanup_ingested:
+            os.remove(file)
+
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Process downloaded RAW MODIS hdf files')
+    parser.add_argument('srcdir', help='directory with raw MODIS .hdf files', default=os.getcwd(), metavar='srcdir')
+    parser.add_argument('-d', '--targetdir', help='Target directory for PROCESSED MODIS files (default is scrdir)',
+                        metavar='')
+    parser.add_argument('-x', '--compression', help='Compression for HDF5 files', default='gzip', metavar='')
+    parser.add_argument('-c', '--chunksize',
+                        help='Number of pixels per block (value needs to result in integer number of blocks)', type=int,
+                        metavar='')
+    parser.add_argument('--all-vampc', help='Flag to process all possible VAM product codes', action='store_true')
+    parser.add_argument('--interleave', help='Interleave MOD13 & MYD13 products to MXD (only works for VIM!)',
+                        action='store_true')
+    parser.add_argument('--parallel-tiles', help='Number of tiles processed in parallel (default = None)', default=1,
+                        type=int, metavar='')
+    parser.add_argument('--quiet', help='Be quiet', action='store_true')
+    parser.add_argument('--cleanup-ingested', help='Delete ingested HDFs', action='store_true')
+
+    # Fail and print help if no arguments supplied
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(0)
+
+    modis_collect(**vars(parser.parse_args()))

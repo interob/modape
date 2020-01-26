@@ -22,7 +22,7 @@ from modape.utils import Credentials
 
 warnings.filterwarnings("default", category=DeprecationWarning)
 
-def main():
+def modis_download(**kwargs):
     '''Query and download MODIS products.
 
     This function allows for querying and downloading MODIS products in bulk.
@@ -35,31 +35,16 @@ def main():
     To query for both MODIS AQUA and TERRA, replace MOD/MYD with M?D.
     Product IDs also accepted in lowercase.
     '''
-
-    parser = argparse.ArgumentParser(description='Query and download MODIS products (Earthdata account required for download)')
-    parser.add_argument('product', help='MODIS product ID(s)', nargs='+')
-    parser.add_argument('--roi', help='Region of interest. Can be LAT/LON point, bounding box in format llx,lly,urx,ury or OGR file (expects epsg:4326! - shp, geojson - convex hull will be used)', nargs='+', required=False)
-    parser.add_argument('--tile-filter', help='MODIS tile filter (download only specified tiles)', nargs='+', required=False, metavar='')
-    parser.add_argument('-c', '--collection', help='MODIS collection', default=6, metavar='')
-    parser.add_argument('-b', '--begin-date', help='Start date (YYYY-MM-DD)', default='2000-01-01', metavar='')
-    parser.add_argument('-e', '--end-date', help='End date (YYYY-MM-DD)', default=datetime.date.today().strftime("%Y-%m-%d"), metavar='')
-    parser.add_argument('--username', help='Earthdata username (required for download)', metavar='')
-    parser.add_argument('--password', help='Earthdata password (required for download)', metavar='')
-    parser.add_argument('-d', '--targetdir', help='Destination directory', default=os.getcwd(), metavar='')
-    parser.add_argument('--store-credentials', help='Store Earthdata credentials on disk to be used for future downloads (unsecure!)', action='store_true')
-    parser.add_argument('--download', help='Download data', action='store_true')
-    parser.add_argument('--aria2', help='DEPRACATED! Use ARIA2 for downloading', action='store_true')
-
-    # fail and print help if no arguments supplied
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(0)
-
-    args = parser.parse_args()
+    args = {'product': [], 'roi': None, 'tile_filter': None, 'collection': 6, 'begin_date': '2000-01-01', \
+            'end_date': datetime.date.today().strftime("%Y-%m-%d"), 'username': None, 'password': None, \
+            'targetdir': os.getcwd(), 'store_credentials': False, 'download': False, 'aria2': True,
+            'strict_begindate': False}
+    args.update(kwargs)
+    args = argparse.Namespace(**args)
 
     credentials = Credentials(args.username, args.password)
 
-    if args.download:
+    if args.aria2:
         warnings.warn("Download only possible with ARIA2! Flag --aria2 will be removed in future release.", DeprecationWarning)
 
         #fail if ARIA2 not installed
@@ -87,6 +72,7 @@ def main():
     with open(this_dir.parent.joinpath('data', 'MODIS_V6_PT.pkl').as_posix(), 'rb') as table_raw:
         product_table = pickle.load(table_raw)
 
+    modis_urls = []
     for product in args.product:
 
         # Handle ? wildcard
@@ -211,12 +197,42 @@ def main():
                                       begindate=args.begin_date,
                                       enddate=args.end_date,
                                       global_flag=global_flag,
-                                      tile_filter=args.tile_filter)
+                                      tile_filter=args.tile_filter,
+                                      strict_begindate=args.strict_begindate)
+            # Build list of all applicable tiles (download urls):
+            modis_urls = modis_urls + query_result.modis_urls
 
             # If download is True and at least one result, download data
             if args.download and query_result.results > 0:
                 query_result.set_credentials(credentials.username, credentials.password)
                 query_result.download()
 
+    return modis_urls
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(
+        description='Query and download MODIS products (Earthdata account required for download)')
+    parser.add_argument('product', help='MODIS product ID(s)', nargs='+')
+    parser.add_argument('--roi',
+                        help='Region of interest. Can be LAT/LON point, bounding box in format llx,lly,urx,ury or OGR file (expects epsg:4326! - shp, geojson - convex hull will be used)',
+                        nargs='+', required=False)
+    parser.add_argument('--tile-filter', help='MODIS tile filter (download only specified tiles)', nargs='+',
+                        required=False, metavar='')
+    parser.add_argument('-c', '--collection', help='MODIS collection', default=6, metavar='')
+    parser.add_argument('-b', '--begin-date', help='Start date (YYYY-MM-DD)', default='2000-01-01', metavar='')
+    parser.add_argument('-e', '--end-date', help='End date (YYYY-MM-DD)',
+                        default=datetime.date.today().strftime("%Y-%m-%d"), metavar='')
+    parser.add_argument('--username', help='Earthdata username (required for download)', metavar='')
+    parser.add_argument('--password', help='Earthdata password (required for download)', metavar='')
+    parser.add_argument('-d', '--targetdir', help='Destination directory', default=os.getcwd(), metavar='')
+    parser.add_argument('--store-credentials',
+                        help='Store Earthdata credentials on disk to be used for future downloads (unsecure!)',
+                        action='store_true')
+    parser.add_argument('--download', help='Download data', action='store_true')
+    parser.add_argument('--aria2', help='Use ARIA2 for downloading', action='store_true')
+
+    # fail and print help if no arguments supplied
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(0)
+
+    modis_download(**vars(parser.parse_args()))

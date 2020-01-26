@@ -34,7 +34,7 @@ class ModisSmoothH5(object):
 
     def __init__(self, rawfile, startdate=None,
                  tempint=None, nsmooth=0, nupdate=0,
-                 targetdir=os.getcwd(), nworkers=1):
+                 targetdir=os.getcwd(), nworkers=1, init_only=False):
         """Create ModisSmoothH5 object.
 
         Args:
@@ -86,6 +86,9 @@ class ModisSmoothH5(object):
             basename(rawfile).split('.')[-2:-1][0]))
 
         self.exists = self.outname.exists()
+
+        if init_only and self.exists:
+            raise FileExistsError()
 
     def create(self):
         """Creates smoothed HDF5 file on disk."""

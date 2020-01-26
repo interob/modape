@@ -37,8 +37,8 @@ class ModisMosaic(object):
 
         Args:
             files: List of paths to files used for creating the mosaic
-            datemin: Datestring for date of earliest mosaic (format YYYYMM)
-            datemax: Datestring for date of latest mosaic (format YYYYMM)
+            datemin: Datestring for date of earliest mosaic (format either YYYYMM or YYYY-MM-DD)
+            datemax: Datestring for date of latest mosaic (format either YYYYMM or YYYY-MM-DD)
             global_flag: Boolean flag if mosaic is global product
         """
 
@@ -195,7 +195,7 @@ class ModisMosaic(object):
         return global_array
 
     @contextmanager
-    def get_raster(self, dataset, ix):
+    def get_raster(self, dataset, ix, cb_transform=None):
         """Generator for mosaic raster.
 
         This generator can be used within a context manager and will yield an in-memory raster.
@@ -222,6 +222,8 @@ class ModisMosaic(object):
             value_array = self.get_array_global(dataset, ix, self.dt_gdal[1])
         else:
             value_array = self.get_array(dataset, ix, self.dt_gdal[1])
+        if cb_transform:
+            value_array = cb_transform(value_array)
         height, width = value_array.shape
         driver = gdal.GetDriverByName('GTiff')
 

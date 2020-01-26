@@ -117,7 +117,7 @@ def run_ws2d_vcp(h5):
 
         smt_h5.ws2d_vc(pdict['srange'], pdict['pvalue'], constrain=pdict['constrain'])
 
-def main():
+def modis_smooth(**kwargs):
     """Smooth, gapfill and interpolate processed raw MODIS HDF5 files.
 
     The smoothing function takes a previously created raw MODIS HDF file (as created by modis_collect) as input.
@@ -136,32 +136,14 @@ def main():
     no concurrency is enabled)
     """
 
-    parser = argparse.ArgumentParser(description='Smooth, gapfill and interpolate processed raw MODIS HDF5 files')
-    parser.add_argument('input', help='Smoothing input - either one or more raw MODIS HDF5 file(s) or path containing raw MODIS HDF5 file(s)', nargs='+', metavar='input')
-    parser.add_argument('-s', '--svalue', help='S value for smoothing (has to be log10(s))', metavar='', type=float)
-    parser.add_argument('-S', '--srange', help='S value range for V-curve (float log10(s) values as smin smax sstep - default -1 1 0)', nargs='+', metavar='')
-    parser.add_argument('-t', '--tempint', help='Value for temporal interpolation (integer required - default is native temporal resolution i.e. no interpolation)', metavar='', type=int)
-    parser.add_argument('-n', '--nsmooth', help='Number of raw timesteps used for smoothing', default=0, metavar='', type=int)
-    parser.add_argument('-u', '--nupdate', help='Number of smoothed timesteps to be updated in HDF5 file', default=0, metavar='', type=int)
-    parser.add_argument('-p', '--pvalue', help='Value for asymmetric smoothing (float required)', metavar='', type=float, default=0.90)
-    parser.add_argument('-d', '--targetdir', help='Target directory for smoothed output', default=os.getcwd(), metavar='')
-    parser.add_argument('--startdate', help='Startdate for temporal interpolation (format YYYY-MM-DD or YYYYJJJ)', metavar='')
-    parser.add_argument('--constrain', help='Perform constrain (only for smoothing from S-grid on optimized file!)', action='store_true')
-    parser.add_argument('--optv', help='Use V-curve for s value optimization', action='store_true')
-    parser.add_argument('--optvp', help='Use asymmetric V-curve for s value optimization', action='store_true')
-    parser.add_argument('--parallel-tiles', help='Number of tiles processed in parallel (default = None)', default=1, type=int, metavar='')
-    parser.add_argument('--nworkers', help='Number of worker processes used per tile (default is number is 1 - no concurrency)', default=1, metavar='', type=int)
-    parser.add_argument('--quiet', help='Be quiet', action='store_true')
+    args = {'input': None, 'svalue': None, 'srange': None, 'tempint': None, 'nsmooth': 0, 'nupdate': 0,
+            'pvalue': None, 'targetdir': os.getcwd(), 'startdate': None, 'constrain': True,
+            'optv': False, 'optvp': False, 'parallel_tiles': 1, 'nworkers': 1, 'quiet': False, 'update': True}
+    args.update(kwargs)
+    args = argparse.Namespace(**args)
 
-    # Fail and print help if no arguments supplied
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(0)
-
-    args = parser.parse_args()
-
-    if len(args.input) == 1 & os.path.isdir(args.input[0]):
-        files = glob.glob(args.input[0] + '/*.h5')
+    if isinstance(args.input, str) & os.path.isdir(args.input):
+        files = glob.glob('{}/*.h5'.format(args.input))
     else:
         files = args.input
 
@@ -374,4 +356,44 @@ def main():
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
-    main()
+    parser = argparse.ArgumentParser(description='Smooth, gapfill and interpolate processed raw MODIS HDF5 files')
+    parser.add_argument('input',
+                        help='Smoothing input - either one or more raw MODIS HDF5 file(s) or path containing raw MODIS HDF5 file(s)',
+                        nargs='+', metavar='input')
+    parser.add_argument('-s', '--svalue', help='S value for smoothing (has to be log10(s))', metavar='', type=float)
+    parser.add_argument('-S', '--srange',
+                        help='S value range for V-curve (float log10(s) values as smin smax sstep - default -1 1 0)',
+                        nargs='+', metavar='')
+    parser.add_argument('-t', '--tempint',
+                        help='Value for temporal interpolation (integer required - default is native temporal resolution i.e. no interpolation)',
+                        metavar='', type=int)
+    parser.add_argument('-n', '--nsmooth', help='Number of raw timesteps used for smoothing', default=0, metavar='',
+                        type=int)
+    parser.add_argument('-u', '--nupdate', help='Number of smoothed timesteps to be updated in HDF5 file', default=0,
+                        metavar='', type=int)
+    parser.add_argument('-p', '--pvalue', help='Value for asymmetric smoothing (float required)', metavar='',
+                        type=float)
+    parser.add_argument('-d', '--targetdir', help='Target directory for smoothed output', default=os.getcwd(),
+                        metavar='')
+    parser.add_argument('--startdate', help='Startdate for temporal interpolation (format YYYY-MM-DD or YYYYJJJ)',
+                        metavar='')
+    parser.add_argument('--constrain', help='Perform constrain (only for smoothing from S-grid on optimized file!)',
+                        action='store_true')
+    parser.add_argument('--optv', help='Use V-curve for s value optimization', action='store_true')
+    parser.add_argument('--optvp', help='Use asymmetric V-curve for s value optimization', action='store_true')
+    parser.add_argument('--parallel-tiles', help='Number of tiles processed in parallel (default = None)', default=1,
+                        type=int, metavar='')
+    parser.add_argument('--nworkers',
+                        help='Number of worker processes used per tile (default is number is 1 - no concurrency)',
+                        default=1, metavar='', type=int)
+    parser.add_argument('--quiet', help='Be quiet', action='store_true')
+
+    # Fail and print help if no arguments supplied
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(0)
+
+    args = parser.parse_args()
+
+    modis_smooth(**vars(parser.parse_args()))
+
