@@ -7,6 +7,7 @@
 from __future__ import absolute_import, division, print_function
 
 import argparse
+import datetime
 import os
 try:
     from pathlib2 import Path
@@ -15,7 +16,8 @@ except ImportError:
 import pickle
 import re
 import sys
-
+import hashlib
+import contextlib
 from modape.modis import modis_tiles, ModisMosaic
 
 try:
@@ -23,7 +25,17 @@ try:
 except ImportError:
     from osgeo import gdal
 
-def main():
+def generate_file_md5(filepath, blocksize=2**20):
+    m = hashlib.md5()
+    with open(filepath , "rb" ) as f:
+        while True:
+            buf = f.read(blocksize)
+            if not buf:
+                break
+            m.update( buf )
+    return m.hexdigest()
+
+def modis_window(**kwargs):
     """Create mosaics (or subsets) from smoothed MODIS HDF5 files.
 
     Given an ROI and smoothed MODIS files in path, either a mosaic or a subset of smoothed MODIS file(s)
@@ -32,26 +44,14 @@ def main():
 
     If ROI is only a point location, the entire intersecting tile or the entire global file will be returned.
     """
-
-    parser = argparse.ArgumentParser(description='Extract a window from MODIS products')
-    parser.add_argument('path', help='Path to processed MODIS h5 files')
-    parser.add_argument('-p', '--product', help='MODIS product ID (can be parial match with *)', metavar='')
-    parser.add_argument('--roi', help='Region of interest. Can be LAT/LON point or bounding box in format llx lly urx ury', nargs='+', type=str)
-    parser.add_argument('--region', help='region 3 letter region code (default is \'reg\')', default='reg', metavar='')
-    parser.add_argument('-b', '--begin-date', help='Start date (YYYYMM)/(YYYY-MM-DD)', default=None, metavar='')
-    parser.add_argument('-e', '--end-date', help='End date (YYYYMM)/(YYYY-MM-DD) - if only YYYMM is provided, all days within MM are included.', default=None, metavar='')
-    parser.add_argument('--vampc', help='VAM product code', metavar='')
-    parser.add_argument('-d', '--targetdir', help='Target directory for GeoTIFFs (default current directory)', default=os.getcwd(), metavar='')
-    parser.add_argument('--sgrid', help='Extract (mosaic of) s value grid(s)', action='store_true')
-    parser.add_argument('--force-doy', help='Force filenaming with DOY for 5 & 10 day data', action='store_true')
-    parser.add_argument('--overwrite', help='Force overwrite of output', action='store_true')
-
-    # fail and print help if no arguments supplied
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(0)
-
-    args = parser.parse_args()
+    args = {'path': None, 'product': None, 'roi': None, 'region': 'reg',
+            'begin_date': None,
+            'end_date': None,
+            'cb_transform': None, 'cb_slicename': None,
+            'vampc': None, 'targetdir': os.getcwd(), 'sgrid': False,
+            'md5': False, 'md_list': None, 'force_doy': False, 'overwrite': False}
+    args.update(kwargs)
+    args = argparse.Namespace(**args)
 
     input_dir = Path(args.path)
     output_dir = Path(args.targetdir)
@@ -204,7 +204,7 @@ def main():
 
                             _ = None
                     except Exception as e:
-                        print('Error while reading {} data for {}! Please check if dataset exits within file. \n\n Error message:\n\n {}'.format(args.dataset, filename, e))
+                        print('Error while reading {} data for {}! Please check if dataset exits within file. \n\n Error message:\n\n {}'.format(dset, filename, e))
                 del mosaic_ropen
             else:
                 # If the dataset is not s-grid, we need to iterate over dates
@@ -218,13 +218,16 @@ def main():
 
                         filename = output_dir.joinpath(args.region.lower() + vam_code.lower() + mosaic.dates[ix][0:4] + 'j' + mosaic.dates[ix][4:7] + '.tif')
 
+                    if args.cb_slicename:
+                      filename = output_dir.joinpath(args.cb_slicename(mosaic.dates[ix]) + '.tif')
+
                     if filename.exists() and not args.overwrite:
                         print('{} exists! Please specify --overwrite if applicable. Skipping ... '.format(filename))
                         continue
 
                     print('Processing file {}'.format(filename.name))
 
-                    with mosaic.get_raster(dset, ix) as mosaic_ropen:
+                    with mosaic.get_raster(dset, ix, args.cb_transform) as mosaic_ropen:
                         try:
                             if args.roi and len(args.roi) > 2:
                                 wopt = gdal.WarpOptions(
@@ -237,15 +240,25 @@ def main():
                                     outputBounds=(args.roi[0], args.roi[3], args.roi[2], args.roi[1]),
                                     resampleAlg='near',
                                     multithread=True,
-                                    creationOptions=['COMPRESS=LZW', 'PREDICTOR=2']
+                                    creationOptions=['COMPRESS=LZW', 'PREDICTOR=2',
+                                                     'TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256'],
                                 )
 
+                                with contextlib.suppress(FileNotFoundError):
+                                    os.remove(filename.as_posix())
                                 _ = gdal.Warp(
                                     filename.as_posix(),
                                     mosaic_ropen.raster,
                                     options=wopt,
                                 )
 
+                                if args.md_list:
+                                    md = _.GetMetadata()
+                                    for md_item in args.md_list:
+                                        equal_pos = md_item.find('=')
+                                        if equal_pos > 0:
+                                            md[md_item[0:equal_pos]] = md_item[equal_pos + 1:]
+                                    _.SetMetadata(md)
                                 _ = None
                             else:
                                 wopt = gdal.WarpOptions(
@@ -257,19 +270,59 @@ def main():
                                     dstNodata=mosaic.nodata,
                                     resampleAlg='near',
                                     multithread=True,
-                                    creationOptions=['COMPRESS=LZW', 'PREDICTOR=2'],
+                                    creationOptions=['COMPRESS=LZW', 'PREDICTOR=2'
+                                                     'TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256'],
                                 )
 
+                                with contextlib.suppress(FileNotFoundError):
+                                    os.remove(filename)
                                 _ = gdal.Warp(
                                     filename.as_posix(),
                                     mosaic_ropen.raster,
                                     options=wopt,
                                 )
 
+                                if args.md_list:
+                                    md = _.GetMetadata()
+                                    for md_item in args.md_list:
+                                        equal_pos = md_item.find('=')
+                                        if equal_pos > 0:
+                                            md[md_item[0:equal_pos]] = md_item[equal_pos + 1:]
+                                    _.SetMetadata(md)
                                 _ = None
+                            md5 = generate_file_md5(filename.as_posix())
+                            with contextlib.suppress(FileNotFoundError):
+                                os.remove(filename.as_posix() + '.md5')
+                            f = open(filename.as_posix() + '.md5', "w")
+                            f.write(md5)
+                            f.close()
                         except Exception as e:
-                            print('Error while reading {} data for {}! Please check if dataset exits within file. \n\n Error message:\n\n {}'.format(args.dataset, filename, e))
+                            print('Error while reading {} data for {}! Please check if dataset exits within file. \n\n Error message:\n\n {}'.format(dset, filename, e))
                     del mosaic_ropen
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Extract a window from MODIS products')
+    parser.add_argument('path', help='Path to processed MODIS h5 files')
+    parser.add_argument('-p', '--product', help='MODIS product ID (can be parial match with *)', metavar='')
+    parser.add_argument('--roi',
+                        help='Region of interest. Can be LAT/LON point or bounding box in format llx lly urx ury',
+                        nargs='+', type=str)
+    parser.add_argument('--region', help='region 3 letter region code (default is \'reg\')', default='reg', metavar='')
+    parser.add_argument('-b', '--begin-date', help='Start date (YYYYMM)/(YYYY-MM-DD)', default=None, metavar='')
+    parser.add_argument('-e', '--end-date',
+                        help='End date (YYYYMM)/(YYYY-MM-DD) - if only YYYMM is provided, all days within MM are included.',
+                        default=None, metavar='')
+    parser.add_argument('--vampc', help='VAM product code', metavar='')
+    parser.add_argument('-d', '--targetdir', help='Target directory for GeoTIFFs (default current directory)',
+                        default=os.getcwd(), metavar='')
+    parser.add_argument('--sgrid', help='Extract (mosaic of) s value grid(s)', action='store_true')
+    parser.add_argument('--force-doy', help='Force filenaming with DOY for 5 & 10 day data', action='store_true')
+    parser.add_argument('--overwrite', help='Force overwrite of output', action='store_true')
+
+    # fail and print help if no arguments supplied
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(0)
+
+    modis_window(**vars(parser.parse_args()))
+
