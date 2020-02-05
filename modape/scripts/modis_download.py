@@ -45,7 +45,9 @@ def modis_download(**kwargs):
     credentials = Credentials(args.username, args.password)
 
     if args.aria2:
-        warnings.warn("Download only possible with ARIA2! Flag --aria2 will be removed in future release.", DeprecationWarning)
+        warnings.warn("\nARIA2 is now standard download tool. The flag is therefore depracated and will raise an error in a future release!\n Please consider removing it,", DeprecationWarning)
+
+    if args.download:
 
         #fail if ARIA2 not installed
         try:

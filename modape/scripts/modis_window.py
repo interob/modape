@@ -197,7 +197,7 @@ def modis_window(**kwargs):
                             )
 
                             _ = gdal.Warp(
-                                filename,
+                                filename.as_posix(),
                                 mosaic_ropen.raster,
                                 options=wopt,
                             )
