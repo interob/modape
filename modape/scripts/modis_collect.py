@@ -42,7 +42,7 @@ def run_process(pdict):
             traceback.print_exc()
         print('\n')
 
-def modis_collect():
+def modis_collect(**kwargs):
     """Collect raw MODIS hdf files into a raw MODIS HDF5 file.
 
     All MODIS hdf files within srcdir will be collected into a raw MODIS HDF5 file, corresponding to product type and tile.
