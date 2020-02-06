@@ -20,7 +20,71 @@ import ogr
 from modape.modis import ModisQuery
 from modape.utils import Credentials
 
+from dateutil.relativedelta import relativedelta
+from modape.timeslicing import ModisInterleavedOctad
+
 warnings.filterwarnings("default", category=DeprecationWarning)
+
+
+def curate_downloads(folder, tiles, begin_date, end_date):
+    """
+    :param folder: download folder with MODUS HDFs
+    :param tiles: list of tile-IDs, like: [r"h21v08", r"h22v08", r"h21v09", r"h22v09"]
+    :param begin_date: first date that should be available in HDFs
+    :param end_date: last date that should be available in HDFs
+    :return:
+    """
+    re_hdfSliceDate = re.compile(r'^.+A(\d{7})\.h\d{2}v\d{2}\.\d{3}\.\d{13}\.hdf$')
+    re_hdfProductionDate = re.compile(r'^.+(\d{13})\.hdf$')
+    re_hdfTile = re.compile(r'^.+(h\d{2}v\d{2})\.\d{3}\.\d{13}\.hdf$')
+
+    # Slices we're looking for:
+    time_slices = [ModisInterleavedOctad(begin_date)]
+    next_slice = time_slices[-1].next()
+    while next_slice.startsBeforeDate(end_date + relativedelta(days=1)):
+        time_slices.append(next_slice)
+        next_slice = time_slices[-1].next()
+    time_slices = set([str(s) for s in time_slices])
+
+    # Locate HDFs:
+    hdfFiles = [x.as_posix() for x in Path(folder).glob('*.hdf')]
+    # Dates for HDFs:
+    hdfDates = set(filter(lambda dte: re.compile(r'^\d{7}$').match(dte),\
+                          [re.sub(re_hdfSliceDate, r'\1', x) for x in hdfFiles]))
+
+    for sDte in sorted(hdfDates):
+        re_curDte = re.compile(r'^.+A' + sDte + r'\.h\d{2}v\d{2}\.\d{3}\.\d{13}\.hdf$')
+        # Create a dictionary for the tiles we are looking for:
+        tile2file = {tile : '' for tile in set(tiles)}
+        for file in filter(lambda f: re_curDte.match(f), hdfFiles):
+            if not sDte in time_slices:
+                print('We do not want this date: {}; removing this file: {}'.format(sDte, file))
+                os.remove(file)
+            else:
+                hdfTile = re.sub(re_hdfTile, r'\1', file)
+                if not hdfTile in tile2file:
+                    print('We do not want this tile: {}; removing this file: {}'.format(hdfTile, file))
+                    os.remove(file)
+                else:
+                    if len(tile2file[hdfTile]) == 0:
+                        # first file we are hitting for this tile on this date; remember it:
+                        tile2file[hdfTile] = file
+                    elif int(re.sub(re_hdfProductionDate, r'\1', file)) \
+                            > int(re.sub(re_hdfProductionDate, r'\1', tile2file[hdfTile])):
+                        print('Removing this older file: {}'.format(tile2file[hdfTile]))
+                        os.remove(tile2file[hdfTile])
+                        tile2file[hdfTile] = file
+                    else:
+                        print('Removing this older file: {}'.format(file))
+                        os.remove(file)
+        if sDte in time_slices:
+            missing = [tile for tile, file in tile2file.items() if len(file) == 0]
+            if len(missing):
+                print('Missing tile(s) for {}: {}'.format(sDte, ', '.join(missing)))
+                return False
+
+    return True
+
 
 def modis_download(**kwargs):
     '''Query and download MODIS products.
