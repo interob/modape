@@ -1,0 +1,10 @@
+{
+  "username": "africanriskcapacity",
+  "password": "Nasa4ARC!",
+  "basedir": "D:\\DATA\\ARC\\kenya_1km",
+  "tile_filter": [ "h21v08", "h22v08", "h21v09", "h22v09" ],
+  "repository": "D:\\DATA\\ARC\\kenya_1km\\VIM\\SMOOTH\\EXPORT",
+  "file_pattern": "*.tif",
+  "mimetype": "application/octet-stream",
+  "debug": "true"
+}
