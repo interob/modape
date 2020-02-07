@@ -110,7 +110,7 @@ class ModisQuery(object):
                 regex = re.compile(r'.+(h\d+v\d+).+')
                 urls = [x.getText() for x in soup.find_all('url')]
 
-                if not strict_begindate:
+                if strict_begindate:
                     # exclude time steps that temporally covers the begin/end interval but are time-stamped before
                     urls = [x for x in urls if
                             fromjulian(re.findall(date_regexp, x[x.rfind('/') + 1:])[0]) >= self.begin]
