@@ -106,7 +106,7 @@ def fetch():
     else:
         state.fetcherThread = Thread(target=do_fetching)
         state.fetcherThread.start()
-        return "Fetcher started\n"
+        return "[{}] Fetcher started\n".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 
 def do_fetching():
