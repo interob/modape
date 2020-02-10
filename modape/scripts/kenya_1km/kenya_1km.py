@@ -112,7 +112,7 @@ def fetch():
 def do_fetching():
     try:
         # Do the hard work: download + ingest + smooth + export
-        first_date = firstDateInRawH5ModisTiles(os.path.join(state.basedir, 'VIM'))
+
         # download and ingest:
         while True:
             last_date = lastDateInRawH5ModisTiles(os.path.join(state.basedir, 'VIM'))
@@ -138,45 +138,53 @@ def do_fetching():
 
             print('Downloading: {}...'.format(next_date))
             downloads = modis_download(**download_params)
-            if len(downloads) < 1:
+            if len(downloads) < 1 and str(getattr(state, 'debug', 'false')).lower() != 'true':
                 break
             else:
-                # check download completeness:
-                if not curate_downloads(download_params['targetdir'], download_params['tile_filter'], next_date, next_date):
-                    break
-                modis_collect(**{'srcdir': state.basedir, 'interleave': True, 'cleanup_ingested': True})
+                if len(downloads) > 0:
+                    # check download completeness:
+                    if not curate_downloads(download_params['targetdir'], download_params['tile_filter'], next_date, next_date):
+                        break
+                    modis_collect(**{'srcdir': state.basedir, 'interleave': True, 'cleanup_ingested': True})
 
-                ingested_date = lastDateInRawH5ModisTiles(os.path.join(state.basedir, 'VIM'))
-                dekadForIngested = Dekad(ingested_date)
-                dekadForPreviousIngested = Dekad(last_date)
-                if not dekadForPreviousIngested.Equals(dekadForIngested):
-
+                # dekadForPreviousIngested = Dekad(last_date)
+                if len(downloads) > 0: #not dekadForPreviousIngested.Equals(dekadForIngested):
                     # smooth, enabling update mode and setting N/n
                     modis_smooth(**{'input': os.path.join(state.basedir, 'VIM'), 'update': True,
                                     'targetdir': os.path.join(state.basedir, 'VIM', 'SMOOTH'),
                                     'nsmooth': 64, 'nupdate': 6,
                                     'tempint': 10, 'constrain': True})
 
-                    # export dekads, from back to front (n = 6):
-                    nexports = 1
-                    exportDekad = dekadForIngested
-                    while (not exportDekad.startsBeforeDate(first_date)) and nexports <= 6:
-                        # also check: do not export before cutoff date
-                        print('>>Export: {}'.format(str(exportDekad)))
-                        modis_window(**{'path': os.path.join(state.basedir, 'VIM', 'SMOOTH'),
-                                        'roi': [33.0, -5.0, 42.0, 5.0],
-                                        'targetdir': os.path.join(state.basedir, 'VIM', 'SMOOTH', 'EXPORT'),
-                                        'region': 'WFPVAM_NDVI',
-                                        'begin_date': exportDekad.getDateTimeMid().strftime('%Y-%m-%d'),
-                                        'end_date': exportDekad.getDateTimeMid().strftime('%Y-%m-%d'),
-                                        'cb_transform': lambda array: transform(array),
-                                        'cb_slicename': lambda dte: slicename(dte),
-                                        'overwrite': True,
-                                        'md_list': ['UPDATE_NUMBER={}'.format(nexports),
-                                                    'FINAL={}'.format('FALSE' if nexports < 6 else 'TRUE')]
-                                        })
+                # export dekads, from back to front (n = 6):
+                nexports = 1
+                exportOctad = ModisInterleavedOctad(lastDateInRawH5ModisTiles(os.path.join(state.basedir, 'VIM')))
+                exportDekad = Dekad(exportOctad.getDateTimeEnd(), True)
+                while Dekad(exportOctad.prev().getDateTimeEnd(), True).Equals(exportDekad) and nexports < 6:
+                    nexports = nexports + 1
+                    exportOctad = exportOctad.prev()
+
+                cutoff_date = datetime.strptime(state.cutoff_date, '%Y-%m-%d').date() + relativedelta(days=1)
+                while (not exportDekad.startsBeforeDate(cutoff_date)) and nexports <= 6:
+                    print('>>Export: {} [Update: {}]'.format(str(exportDekad), str(nexports)))
+                    modis_window(**{'path': os.path.join(state.basedir, 'VIM', 'SMOOTH'),
+                                    'roi': [33.0, -5.0, 42.0, 5.0],
+                                    'targetdir': os.path.join(state.basedir, 'VIM', 'SMOOTH', 'EXPORT'),
+                                    'region': 'WFPVAM_NDVI',
+                                    'begin_date': exportDekad.getDateTimeMid().strftime('%Y-%m-%d'),
+                                    'end_date': exportDekad.getDateTimeMid().strftime('%Y-%m-%d'),
+                                    'cb_transform': lambda array: transform(array),
+                                    'cb_slicename': lambda dte: slicename(dte),
+                                    'overwrite': True,
+                                    'md_list': ['UPDATE_NUMBER={}'.format(nexports),
+                                                'FINAL={}'.format('FALSE' if nexports < 6 else 'TRUE')]
+                                    })
+
+                    nexports = nexports + 1
+                    exportOctad = exportOctad.prev()
+                    exportDekad = Dekad(exportOctad.getDateTimeEnd(), True)
+                    while Dekad(exportOctad.prev().getDateTimeEnd(), True).Equals(exportDekad) and nexports < 6:
                         nexports = nexports + 1
-                        exportDekad = exportDekad.prev()
+                        exportOctad = exportOctad.prev()
 
             if str(getattr(state, 'debug', 'false')).lower() == 'true':
                 break

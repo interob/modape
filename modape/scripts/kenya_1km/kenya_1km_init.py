@@ -141,6 +141,8 @@ if __name__ == '__main__':
     # export dekads:
     first_date = firstDateInRawH5ModisTiles(os.path.join(config.basedir, 'VIM'))
     last_date = lastDateInRawH5ModisTiles(os.path.join(config.basedir, 'VIM'))
+    last_date = last_date + relativedelta(days=8)
+    last_date = datetime(last_date.year, last_date.month, last_date.day)
 
     if first_date < datetime.strptime(args.begin_date, '%Y-%m-%d').date():
         first_date = datetime.strptime(args.begin_date, '%Y-%m-%d').date()
@@ -152,7 +154,7 @@ if __name__ == '__main__':
     toSlice = exportSlice
     cnt = 1
     while True:
-        if cnt == 9 or toSlice.next().endsAfterDate(last_date):
+        if cnt == 9 or toSlice.next().getDateTimeMid() > last_date:
             print('\nExporting {} to {} ...'.format(str(exportSlice), str(toSlice)))
             modis_window(**{'path': os.path.join(config.basedir, 'VIM', 'SMOOTH'), 'roi': [33.0, -5.0, 42.0, 5.0],
                             'targetdir': os.path.join(config.basedir, 'VIM', 'SMOOTH', 'EXPORT'), 'region': 'WFPVAM_NDVI',
@@ -160,7 +162,7 @@ if __name__ == '__main__':
                             'end_date': toSlice.getDateTimeMid().strftime('%Y-%m-%d'),
                             'cb_transform': lambda array: transform(array), 'cb_slicename': lambda dte: slicename(dte),
                             'md5': True, 'md_list': [ 'FINAL=TRUE' ]})
-        if toSlice.next().endsAfterDate(last_date):
+        if toSlice.next().getDateTimeMid() > last_date:
             # every date represents (a) the *mid* of the one composite and the *start* of the other
             break
 
