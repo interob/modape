@@ -160,6 +160,15 @@ class Dekad(TimeSlice):
         if isinstance(year, datetime.date):
             self.__year = year.year
             self.__seqno = ((year.month - 1) * 3) + (min(2, (year.day - 1) // 10) + 1)
+            if seqno and self.getDateTimeMid() > year:
+                # provided date must be after first half
+                dekads = (self.Year * 36) + self.Seqno - 1;
+                if (dekads % 36) == 0:
+                    self.__year = (dekads // 36) - 1
+                    self.__seqno = 36
+                else:
+                    self.__year = dekads // 36
+                    self.__seqno = dekads % 36
         else:
             self.__year = year
             self.__seqno = seqno
