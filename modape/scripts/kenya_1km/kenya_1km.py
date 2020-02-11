@@ -163,8 +163,9 @@ def do_fetching():
                     nexports = nexports + 1
                     exportOctad = exportOctad.prev()
 
-                cutoff_date = datetime.strptime(state.cutoff_date, '%Y-%m-%d').date() + relativedelta(days=1)
-                while (not exportDekad.startsBeforeDate(cutoff_date)) and nexports <= 6:
+                #cutoff_date = datetime.strptime(state.cutoff_date, '%Y-%m-%d').date() + relativedelta(days=1)
+                first_date = firstDateInRawH5ModisTiles(os.path.join(state.basedir, 'VIM'))
+                while (not exportDekad.startsBeforeDate(first_date)) and nexports <= 6:
                     print('>>Export: {} [Update: {}]'.format(str(exportDekad), str(nexports)))
                     modis_window(**{'path': os.path.join(state.basedir, 'VIM', 'SMOOTH'),
                                     'roi': [33.0, -5.0, 42.0, 5.0],
