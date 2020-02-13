@@ -74,6 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--end-date', help='End date (YYYY-MM-DD) for initialization',
                         default='2019-12-31', metavar='')
     parser.add_argument('--download-only', help='Only download data', action='store_true')
+    parser.add_argument('--smooth-only', help='Force running smoothing', action='store_true')
     parser.add_argument('--export-only', help='Only export data', action='store_true')
     args = parser.parse_args()
 
@@ -81,7 +82,8 @@ if __name__ == '__main__':
     with open(os.path.join(this_dir, 'kenya_1km.json')) as f:
         config = json.load(f, object_hook=lambda d: Namespace(**d))
 
-    if not args.export_only:
+    urls = []
+    if not args.export_only and not args.smooth_only:
         end_date = None
         # download and ingest:
         begin_date = lastDateInRawH5ModisTiles(os.path.join(config.basedir, 'VIM'))
@@ -133,10 +135,13 @@ if __name__ == '__main__':
                 exit(1)
             exit(0)
 
+    if len(urls) > 0 or args.smooth_only:
         # smooth downloaded archive: setting the 'init_only' to True, this can be done only once per product tile:
         modis_smooth(**{'input': os.path.join(config.basedir, 'VIM'), 'init_only': True,
                         'targetdir': os.path.join(config.basedir, 'VIM', 'SMOOTH'),
-                        'tempint': 10, 'constrain': True})
+                        'optvp': True, 'tempint': 10, 'constrain': True})
+        if args.smooth_only:
+            exit(0)
 
     # export dekads:
     first_date = firstDateInRawH5ModisTiles(os.path.join(config.basedir, 'VIM'))

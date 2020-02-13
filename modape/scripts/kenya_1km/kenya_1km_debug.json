@@ -7,5 +7,6 @@
   "repository": "D:\\DATA\\ARC\\kenya_1km\\VIM\\SMOOTH\\EXPORT",
   "file_pattern": "*.tif",
   "mimetype": "application/octet-stream",
-  "debug": "true"
+  "debug": "true",
+  "debug_redo_smooth": "false"
 }

@@ -148,7 +148,7 @@ def do_fetching():
                     modis_collect(**{'srcdir': state.basedir, 'interleave': True, 'cleanup_ingested': True})
 
                 # dekadForPreviousIngested = Dekad(last_date)
-                if len(downloads) > 0: #not dekadForPreviousIngested.Equals(dekadForIngested):
+                if (str(getattr(state, 'debug_redo_smooth', 'false')).lower() == 'true') or len(downloads) > 0: #not dekadForPreviousIngested.Equals(dekadForIngested):
                     # smooth, enabling update mode and setting N/n
                     modis_smooth(**{'input': os.path.join(state.basedir, 'VIM'), 'update': True,
                                     'targetdir': os.path.join(state.basedir, 'VIM', 'SMOOTH'),
