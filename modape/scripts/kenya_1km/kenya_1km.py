@@ -77,8 +77,8 @@ def transform(array):
     return np.round(array, -2)
 
 
-def slicename(dte):
-    return "NDVI10_{}_MODAPE04_KENYA".format(str(Dekad(fromjulian(dte))))
+def slicename(region, dte):
+    return "NDVI10_{}_MODAPE04_{}".format(str(Dekad(fromjulian(dte))), region)
 
 
 @app.route('/')

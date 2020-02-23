@@ -1,7 +1,7 @@
 {
   "username": "africanriskcapacity",
   "password": "Nasa4ARC!",
-  "basedir": "/var/storage/kenya_1km",
+  "basedir": "/var/storage/africa_1km",
   "tile_filter": [
     "h21v07",
     "h21v08",
@@ -48,7 +48,7 @@
   ],
   "init_start_date": "2002-07-03",
   "init_end_date": "2019-12-31",
-  "repository": "/var/storage/kenya_1km/VIM/SMOOTH/EXPORT",
+  "repository": "/var/storage/africa_1km/VIM/SMOOTH/EXPORT",
   "file_pattern": "*.tif",
   "mimetype": "application/octet-stream",
   "debug": "false",
