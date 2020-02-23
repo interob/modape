@@ -70,7 +70,7 @@ def slicename(region, dte):
 if __name__ == '__main__':
     this_dir, _ = os.path.split(__file__)
     with open(os.path.join(this_dir, 'kenya_1km.json')) as f:
-        args = json.load(f, object_hook=lambda d: Namespace(**d))
+        args = json.load(f)
 
         parser = argparse.ArgumentParser(description='MODIS NDVI bootstrapper')
         parser.add_argument('-b', '--init-start-date', help='Start date (YYYY-MM-DD) for initialization',
