@@ -81,6 +81,7 @@ if __name__ == '__main__':
         parser.add_argument('--smooth-only', help='Force running smoothing', action='store_true')
         parser.add_argument('--export-only', help='Only export data', action='store_true')
         args.update(**vars(parser.parse_args()))
+        args = Namespace(**args)
 
         urls = []
         if not args.export_only and not args.smooth_only:
