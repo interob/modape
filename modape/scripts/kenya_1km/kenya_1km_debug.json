@@ -3,10 +3,14 @@
   "password": "Nasa4ARC!",
   "basedir": "D:\\DATA\\ARC\\kenya_1km",
   "tile_filter": [ "h21v08", "h22v08", "h21v09", "h22v09" ],
-  "cutoff_date": "2018-12-31",
+  "init_start_date": "2002-07-03",
+  "init_end_date": "2019-12-31",
   "repository": "D:\\DATA\\ARC\\kenya_1km\\VIM\\SMOOTH\\EXPORT",
   "file_pattern": "*.tif",
   "mimetype": "application/octet-stream",
   "debug": "true",
-  "debug_redo_smooth": "false"
+  "debug_redo_smooth": "false",
+  "export": {
+    "KENYA": [33.0, -5.0, 42.0, 5.0]
+  }
 }

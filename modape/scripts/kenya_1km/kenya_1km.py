@@ -163,22 +163,21 @@ def do_fetching():
                     nexports = nexports + 1
                     exportOctad = exportOctad.prev()
 
-                #cutoff_date = datetime.strptime(state.cutoff_date, '%Y-%m-%d').date() + relativedelta(days=1)
                 first_date = firstDateInRawH5ModisTiles(os.path.join(state.basedir, 'VIM'))
                 while (not exportDekad.startsBeforeDate(first_date)) and nexports <= 6:
                     print('>>Export: {} [Update: {}]'.format(str(exportDekad), str(nexports)))
-                    modis_window(**{'path': os.path.join(state.basedir, 'VIM', 'SMOOTH'),
-                                    'roi': [33.0, -5.0, 42.0, 5.0],
-                                    'targetdir': os.path.join(state.basedir, 'VIM', 'SMOOTH', 'EXPORT'),
-                                    'region': 'WFPVAM_NDVI',
-                                    'begin_date': exportDekad.getDateTimeMid().strftime('%Y-%m-%d'),
-                                    'end_date': exportDekad.getDateTimeMid().strftime('%Y-%m-%d'),
-                                    'cb_transform': lambda array: transform(array),
-                                    'cb_slicename': lambda dte: slicename(dte),
-                                    'overwrite': True,
-                                    'md_list': ['UPDATE_NUMBER={}'.format(nexports),
-                                                'FINAL={}'.format('FALSE' if nexports < 6 else 'TRUE')]
-                                    })
+                    for region, roi in state.export.items():
+                        modis_window(**{'path': os.path.join(state.basedir, 'VIM', 'SMOOTH'), 'roi': roi,
+                                        'targetdir': os.path.join(state.basedir, 'VIM', 'SMOOTH', 'EXPORT'),
+                                        'region': region,
+                                        'begin_date': exportDekad.getDateTimeMid().strftime('%Y-%m-%d'),
+                                        'end_date': exportDekad.getDateTimeMid().strftime('%Y-%m-%d'),
+                                        'cb_transform': lambda array: transform(array),
+                                        'cb_slicename': lambda region, dte: slicename(region, dte),
+                                        'overwrite': True,
+                                        'md_list': ['UPDATE_NUMBER={}'.format(nexports),
+                                                    'FINAL={}'.format('FALSE' if nexports < 6 else 'TRUE')]
+                                        })
 
                     nexports = nexports + 1
                     exportOctad = exportOctad.prev()

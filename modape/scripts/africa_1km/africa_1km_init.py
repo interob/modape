@@ -1,7 +1,7 @@
-#This script integrates modis_download and modis_collect to incrementally download and ingest the NDVI archive,
-# year by year.
+#This script integrates modis_download and modis_collect for initial download and ingestion of the NDVI archive,
+# year by year. Suggested time period: 2002-07-03 to 2019-12-31
 #
-# Usage: python3 app/kenya_1km_init.py -b 2002-07-03 -e 2019-12-31
+# Usage: ./africa_1km_init.py
 
 import os, sys; sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import json
@@ -69,7 +69,7 @@ def slicename(region, dte):
 
 if __name__ == '__main__':
     this_dir, _ = os.path.split(__file__)
-    with open(os.path.join(this_dir, 'kenya_1km.json')) as f:
+    with open(os.path.join(this_dir, 'africa_1km.json')) as f:
         args = json.load(f, object_hook=lambda d: Namespace(**d))
 
         parser = argparse.ArgumentParser(description='MODIS NDVI bootstrapper')
@@ -164,7 +164,7 @@ if __name__ == '__main__':
                                     'end_date': toSlice.getDateTimeMid().strftime('%Y-%m-%d'),
                                     'cb_transform': lambda array: transform(array),
                                     'cb_slicename': lambda region, dte: slicename(region, dte),
-                                    'md5': True, 'md_list': ['FINAL=TRUE']})
+                                    'md5': True, 'md_list': [ 'FINAL=TRUE' ]})
             if toSlice.next().getDateTimeMid() > last_date:
                 # every date represents (a) the *mid* of the one composite and the *start* of the other
                 break
