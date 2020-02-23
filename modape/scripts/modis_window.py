@@ -219,7 +219,7 @@ def modis_window(**kwargs):
                         filename = output_dir.joinpath(args.region.lower() + vam_code.lower() + mosaic.dates[ix][0:4] + 'j' + mosaic.dates[ix][4:7] + '.tif')
 
                     if args.cb_slicename:
-                      filename = output_dir.joinpath(args.cb_slicename(mosaic.dates[ix]) + '.tif')
+                      filename = output_dir.joinpath(args.cb_slicename(args.region, mosaic.dates[ix]) + '.tif')
 
                     if filename.exists() and not args.overwrite:
                         print('{} exists! Please specify --overwrite if applicable. Skipping ... '.format(filename))
