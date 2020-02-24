@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-  kenia_1km.py: Flask Service app for collecting, processing and disseminating filtered NDVI.
+  kenya_1km.py: Flask Service app for collecting, processing and disseminating filtered NDVI.
                  Production the time series leverages the WFP VAM MODAPE toolkit: https://github.com/WFP-VAM/modape
 
   Dependencies: arc-modape (0.4), Numpy, ...
@@ -124,17 +124,10 @@ def do_fetching():
             if next_date > date.today(): # stop after today:
                 break
 
-            download_params = {}
-            download_params['targetdir'] = state.basedir
-            download_params['username'] = state.username
-            download_params['password'] = state.password
-            download_params['begin_date'] = next_date.strftime("%Y-%m-%d")
-            download_params['end_date'] = next_date.strftime("%Y-%m-%d")
-            download_params['aria2'] = True
-            download_params['tile_filter'] = state.tile_filter
-            download_params['download'] = True
-            download_params['strict_begindate'] = True
-            download_params['product'] = ['M?D13A2']
+            download_params = {'targetdir': state.basedir, 'username': state.username, 'password': state.password,
+                               'begin_date': next_date.strftime("%Y-%m-%d"), 'end_date': next_date.strftime("%Y-%m-%d"),
+                               'aria2': True, 'tile_filter': state.tile_filter, 'download': True,
+                               'strict_begindate': True, 'product': ['M?D13A2']}
 
             print('Downloading: {}...'.format(next_date))
             downloads = modis_download(**download_params)
