@@ -80,6 +80,7 @@ if __name__ == '__main__':
         parser.add_argument('--download-only', help='Only download data', action='store_true')
         parser.add_argument('--smooth-only', help='Force running smoothing', action='store_true')
         parser.add_argument('--export-only', help='Only export data', action='store_true')
+        parser.add_argument('-r', '--region', help='Only export data', default=None, metavar='')
         args.update(**vars(parser.parse_args()))
         args = Namespace(**args)
 
@@ -157,6 +158,8 @@ if __name__ == '__main__':
         while True:
             if cnt == 9 or toSlice.next().getDateTimeMid() > last_date:
                 for region, roi in args.export.items():
+                    if (args.region is not None) and args.region != region:
+                        continue
                     print('\n{} -- Exporting {} to {} ...'.format(region, str(exportSlice), str(toSlice)))
                     modis_window(**{'path': os.path.join(args.basedir, 'VIM', 'SMOOTH'), 'roi': roi,
                                     'targetdir': os.path.join(args.basedir, 'VIM', 'SMOOTH', 'EXPORT'),
