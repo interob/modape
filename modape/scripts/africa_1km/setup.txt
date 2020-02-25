@@ -1,0 +1,42 @@
+This processing toolkit for production of Filtered NDVI (built on top of WFP VAM MODAPE) requires Python 3.
+
+SETUP VIRTUALENV like so:
+
+sudo mkdir modape_ndvi_africa_1km_production
+sudo chown root:processing modape_ndvi_africa_1km_production
+sudo chmod g+w modape_ndvi_africa_1km_production
+AS modape USER:
+    virtualenv -p `which python3` venv
+    source venv/bin/activate
+    pip install numpy
+    pip install flask
+    git clone -b arc-modape-develop-v0.4 https://github.com/interob/modape
+    pip install ./modape
+    cp modape/modape/scripts/africa_1km/africa_1km.py .
+    cp modape/modape/scripts/africa_1km/africa_1km_init.py .
+    cp modape/modape/scripts/africa_1km/production_json/africa_1km.json .
+
+SETUP FLASK like so:
+FLASK
+-----
+Fask-App-as-Deamon (https://blog.miguelgrinberg.com/post/running-a-flask-application-as-a-service-with-systemd): "modape_ndvi_africa_1km"
+File: /etc/systemd/system/ndvi10_modape04_africa.service:
+--------------------------------------------------------
+Reads:
+[Unit]
+Description=Flask processing app for Filter-NDVI based on WFP VAM MODAPE toolkit, Africa @1km, dekadal
+After=network.target
+
+[Service]
+User=modape
+WorkingDirectory=/var/storage/africa_1km
+ExecStart=/var/modape_ndvi_africa_1km_production/venv/bin/python /var/modape_ndvi_africa_1km_production/africa_1km.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+---------------------------------------------------------
+
+sudo systemctl daemon-reload
+sudo systemctl enable ndvi10_modape04_africa
+sudo systemctl restart ndvi10_modape04_africa
