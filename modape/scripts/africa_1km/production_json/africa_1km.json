@@ -3,9 +3,6 @@
   "password": "Nasa4ARC!",
   "basedir": "/var/storage/africa_1km",
   "tile_filter": [
-    "h22v08"
-  ],
-  "_tile_filter": [
     "h21v07",
     "h21v08",
     "h19v12",
@@ -49,16 +46,12 @@
     "h20v05",
     "h18v09"
   ],
-  "_init_start_date": "2002-07-03",
-  "init_start_date": "2017-07-03",
+  "init_start_date": "2002-07-03",
   "init_end_date": "2019-12-31",
   "repository": "/var/storage/africa_1km/VIM/SMOOTH/EXPORT",
   "file_pattern": "*.tif",
   "mimetype": "application/octet-stream",
   "export": {
-    "KENYA": [33.0, -5.0, 42.0, 5.0]
-  },
-  "_export": {
     "KENYA": [33.0, -5.0, 42.0, 5.0],
     "NIGER": [0.0, 11.0, 16.0, 24.0],
     "MAURITANIA": [-18.0, 14.0, -4.0, 28.0],
