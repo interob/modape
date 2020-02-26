@@ -159,7 +159,7 @@ def do_fetching():
                 first_date = firstDateInRawH5ModisTiles(os.path.join(state.basedir, 'VIM'))
                 while (not exportDekad.startsBeforeDate(first_date)) and nexports <= 6:
                     print('>>Export: {} [Update: {}]'.format(str(exportDekad), str(nexports)))
-                    for region, roi in state.export.items():
+                    for region, roi in dict(**vars(state.export)).items():
                         modis_window(**{'path': os.path.join(state.basedir, 'VIM', 'SMOOTH'), 'roi': roi,
                                         'targetdir': os.path.join(state.basedir, 'VIM', 'SMOOTH', 'EXPORT'),
                                         'region': region,
