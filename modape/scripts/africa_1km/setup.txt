@@ -38,5 +38,26 @@ WantedBy=multi-user.target
 ---------------------------------------------------------
 
 sudo systemctl daemon-reload
-sudo systemctl enable ndvi10_modape04_africa
-sudo systemctl restart ndvi10_modape04_africa
+sudo systemctl enable ndvi10_modape04_africa_1km
+sudo systemctl restart ndvi10_modape04_africa_1km
+
+NGINX
+-----
+location /ndvi10_modape04_africa/fetch {
+          deny all;
+        }
+
+        location /ndvi10_modape04_africa {
+          rewrite ^/ndvi10_modape04_africa/?(.*) /$1 break;
+          proxy_pass http://127.0.0.1:5001;
+          # kill cache
+          add_header Last-Modified $date_gmt;
+          add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+          if_modified_since off;
+          expires off;
+          etag off;
+        }
+
+CRONTAB
+-------
+45 * * * * wget --content-on-error -O- http://127.0.0.1:5001/fetch >>/var/storage/kenya_1km/log/fetch.log
