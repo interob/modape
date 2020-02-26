@@ -55,8 +55,6 @@
   "repository": "/var/storage/africa_1km/VIM/SMOOTH/EXPORT",
   "file_pattern": "*.tif",
   "mimetype": "application/octet-stream",
-  "debug": "false",
-  "debug_redo_smooth": "false",
   "export": {
     "KENYA": [33.0, -5.0, 42.0, 5.0]
   },

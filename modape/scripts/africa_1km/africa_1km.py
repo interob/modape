@@ -13,6 +13,7 @@ import os
 import glob
 import re
 import json
+import argparse
 try:
     from types import SimpleNamespace as Namespace
 except ImportError:
@@ -131,7 +132,7 @@ def do_fetching():
 
             print('Downloading: {}...'.format(next_date))
             downloads = modis_download(**download_params)
-            if len(downloads) < 1 and str(getattr(state, 'debug', 'false')).lower() != 'true':
+            if len(downloads) < 1 and not state.debug:
                 break
             else:
                 if len(downloads) > 0:
@@ -140,8 +141,7 @@ def do_fetching():
                         break
                     modis_collect(**{'srcdir': state.basedir, 'interleave': True, 'cleanup_ingested': True})
 
-                # dekadForPreviousIngested = Dekad(last_date)
-                if (str(getattr(state, 'debug_redo_smooth', 'false')).lower() == 'true') or len(downloads) > 0: #not dekadForPreviousIngested.Equals(dekadForIngested):
+                if state.debug_redo_smooth or len(downloads) > 0:
                     # smooth, enabling update mode and setting N/n
                     modis_smooth(**{'input': os.path.join(state.basedir, 'VIM'), 'update': True,
                                     'targetdir': os.path.join(state.basedir, 'VIM', 'SMOOTH'),
@@ -179,13 +179,19 @@ def do_fetching():
                         nexports = nexports + 1
                         exportOctad = exportOctad.prev()
 
-            if str(getattr(state, 'debug', 'false')).lower() == 'true':
+            if state.debug:
                 break
     finally:
         state.fetcherThread = None
   
 if __name__ == '__main__':
-    if str(getattr(state, 'debug', 'false')).lower() == 'true':
+    parser = argparse.ArgumentParser(description='Incremental download+ingest+smooth+export')
+    parser.add_argument('--debug', help='Run without Flask: debug fetch procedure', action='store_true')
+    parser.add_argument('--debug-redo-smooth', help='When running debug fetch procedure redo smoothing', action='store_true')
+    p = parser.parse_args()
+    state.debug = p.debug
+    state.debug_redo_smooth = p.debug_redo_smooth
+    if p.debug:
         fetch()
         state.fetcherThread.join()
     else:
