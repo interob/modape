@@ -83,11 +83,15 @@ class TimeSlice(ABC):
 class ModisInterleavedOctad(TimeSlice):
 
     def __init__(self, year=None, seqno=None):
+        super().__init__()
         self.__year = None
         self.__seqno = None
         if isinstance(year, datetime.date):
             self.__year = year.year
             self.__seqno = (year.timetuple().tm_yday // 8) + 1
+            if seqno and self.getDateTimeMid() >= year:
+                # provided date must be mid (=) or after (>) first half (hence: ">=")
+                raise NotImplementedError()
         else:
             self.__year = year
             self.__seqno = seqno
@@ -155,13 +159,14 @@ class ModisInterleavedOctad(TimeSlice):
 class Dekad(TimeSlice):
 
     def __init__(self, year=None, seqno=None):
+        super().__init__()
         self.__year = None
         self.__seqno = None
         if isinstance(year, datetime.date):
             self.__year = year.year
             self.__seqno = ((year.month - 1) * 3) + (min(2, (year.day - 1) // 10) + 1)
-            if seqno and self.getDateTimeMid() > year:
-                # provided date must be after first half
+            if seqno and self.getDateTimeMid() >= year:
+                # provided date must be mid (=) or after (>) first half (hence: ">=")
                 dekads = (self.Year * 36) + self.Seqno - 1;
                 if (dekads % 36) == 0:
                     self.__year = (dekads // 36) - 1
