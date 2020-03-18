@@ -89,8 +89,8 @@ class ModisInterleavedOctad(TimeSlice):
         if isinstance(year, datetime.date):
             self.__year = year.year
             self.__seqno = (year.timetuple().tm_yday // 8) + 1
-            if seqno and self.getDateTimeMid() >= year:
-                # provided date must be mid (=) or after (>) first half (hence: ">=")
+            if seqno and self.getDateTimeMid() > year:
+                # when mid is after the provided date, go back one time step:
                 raise NotImplementedError()
         else:
             self.__year = year
@@ -165,8 +165,8 @@ class Dekad(TimeSlice):
         if isinstance(year, datetime.date):
             self.__year = year.year
             self.__seqno = ((year.month - 1) * 3) + (min(2, (year.day - 1) // 10) + 1)
-            if seqno and self.getDateTimeMid() >= year:
-                # provided date must be mid (=) or after (>) first half (hence: ">=")
+            if seqno and self.getDateTimeMid() > year:
+                # when mid is after the provided date, go back one time step:
                 dekads = (self.Year * 36) + self.Seqno - 1;
                 if (dekads % 36) == 0:
                     self.__year = (dekads // 36) - 1

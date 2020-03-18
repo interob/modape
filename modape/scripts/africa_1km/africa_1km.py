@@ -152,6 +152,13 @@ def do_fetching():
                 nexports = 1
                 exportOctad = ModisInterleavedOctad(lastDateInRawH5ModisTiles(os.path.join(state.basedir, 'VIM')))
                 exportDekad = Dekad(exportOctad.getDateTimeEnd(), True)
+                print('')
+                print('Octad-end for last ingested date: {}'.format(str(exportOctad.getDateTimeEnd())))
+                print(' > Corresponding dekad: {}'.format(str(exportDekad)))
+                if state.debug_report_last_octad:
+                    print('')
+                    break
+
                 while Dekad(exportOctad.prev().getDateTimeEnd(), True).Equals(exportDekad) and nexports < 6:
                     nexports = nexports + 1
                     exportOctad = exportOctad.prev()
@@ -187,10 +194,12 @@ def do_fetching():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Incremental download+ingest+smooth+export')
     parser.add_argument('--debug', help='Run without Flask: debug fetch procedure', action='store_true')
-    parser.add_argument('--debug-redo-smooth', help='When running debug fetch procedure redo smoothing', action='store_true')
+    parser.add_argument('--debug-redo-smooth', help='When running debug: redo smoothing even when no new download have been ingested', action='store_true')
+    parser.add_argument('--debug-report-last-octad', help='When running debug: report last ingested octad and quit', action='store_true')
     p = parser.parse_args()
     state.debug = p.debug
     state.debug_redo_smooth = p.debug_redo_smooth
+    state.debug_report_last_octad = p.debug_report_last_octad
     if p.debug:
         fetch()
         state.fetcherThread.join()
