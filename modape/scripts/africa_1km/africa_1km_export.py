@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """
-  africa_1km.py: Flask Service app for collecting, processing and disseminating filtered NDVI.
-                 Production the time series leverages the WFP VAM MODAPE toolkit: https://github.com/WFP-VAM/modape
+  africa_1km_export.py: Export a (new) roi from start date to last available, e.g.: python africa_1km_export.py CHAD
+                        **BEWARE**: make sure the Flask app is not accessing the production storage at the same time! Suspend it by calling:
+                                    >> wget --content-on-error -O- http://127.0.0.1:5001/suspend
+                        Production the time series leverages the WFP VAM MODAPE toolkit: https://github.com/WFP-VAM/modape
 
   Dependencies: arc-modape (0.4), Numpy, ...
   
