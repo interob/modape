@@ -85,7 +85,7 @@ def slicename(region, dte):
 @app.route('/')
 def index():
     if getattr(state, 'fetcherThread', None) is not None:
-        return "Fetcher is running, try again later\n", 404
+        return "Fetcher is running (or suspended), try again later\n", 404
     else:
         files = {}
         for f in sorted(glob.glob(os.path.join(state.repository, state.file_pattern))):
@@ -97,18 +97,36 @@ def index():
 
 @app.route('/download/<filename>')
 def download(filename):
-    return send_file(os.path.join(state.repository, filename), as_attachment=True, mimetype=state.mimetype)
+    if getattr(state, 'fetcherThread', None) is not None:
+        return "Fetcher is running (or suspended), try again later\n", 404
+    else:
+        return send_file(os.path.join(state.repository, filename), as_attachment=True, mimetype=state.mimetype)
 
 
 @app.route('/fetch')
 def fetch():
     if getattr(state, 'fetcherThread', None) is not None:
-        return "Fetcher is already running, try again later\n", 404
+        return "Fetcher is already running (or suspended), try again later\n", 404
     else:
         state.fetcherThread = Thread(target=do_fetching)
         state.fetcherThread.start()
         return "[{}] Fetcher started\n".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
+@app.route('/suspend')
+def fetch():
+    if getattr(state, 'fetcherThread', None) is not None:
+        if getattr(state, 'suspended', False):
+            return "Fetcher is already suspended.\n", 404
+        else:
+            return "Fetcher is running, try again later.\n", 404
+    else:
+        state.fetcherThread = Thread(target=do_nothing)
+        state.fetcherThread.start()
+        return "[{}] Fetcher suspended; restart to resume.\n".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+def do_nothing():
+    state.suspended = True
+    pass
 
 def do_fetching():
     try:
@@ -194,7 +212,7 @@ def do_fetching():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Incremental download+ingest+smooth+export')
     parser.add_argument('--debug', help='Run without Flask: debug fetch procedure', action='store_true')
-    parser.add_argument('--debug-redo-smooth', help='When running debug: redo smoothing even when no new download have been ingested', action='store_true')
+    parser.add_argument('--debug-redo-smooth', help='When running debug: redo smoothing even when no new downloads have been ingested', action='store_true')
     parser.add_argument('--debug-report-last-octad', help='When running debug: report last ingested octad and quit', action='store_true')
     p = parser.parse_args()
     state.debug = p.debug
