@@ -113,7 +113,7 @@ def fetch():
         return "[{}] Fetcher started\n".format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 @app.route('/suspend')
-def fetch():
+def suspend():
     if getattr(state, 'fetcherThread', None) is not None:
         if getattr(state, 'suspended', False):
             return "Fetcher is already suspended.\n", 404
