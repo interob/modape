@@ -43,11 +43,15 @@ sudo systemctl restart ndvi10_modape04_africa_1km
 
 NGINX
 -----
-location /ndvi10_modape04_africa/fetch {
+  location /ndvi10_modape04_africa/fetch {
           deny all;
         }
 
-        location /ndvi10_modape04_africa {
+  location /ndvi10_modape04_africa/suspend {
+          deny all;
+        }
+        
+  location /ndvi10_modape04_africa {
           rewrite ^/ndvi10_modape04_africa/?(.*) /$1 break;
           proxy_pass http://127.0.0.1:5001;
           # kill cache
